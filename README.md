@@ -9,3 +9,10 @@
 - run
 
     `docker run greeting`
+
+
+--- 
+
+### Example
+
+  ![](/res/example.png)
