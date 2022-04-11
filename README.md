@@ -4,7 +4,7 @@
 
 - build
 
-    `./build.sh'
+    `./build.sh`
 
 - run
 
