@@ -1,18 +1,22 @@
 # big-data-course
 
-### Setup
+### Example
 
-- build
+- install/run
+    `./run-cluster.sh`
+    ![](/res/img4.png)
 
-    `./build.sh`
+- keyspace & tables creation 
+    `./ddl.sh`
+    ![](/res/img3.png)
 
-- run
+- table fill
+    `./dml.sh`
+    ![](/res/img2.png)
 
-    `docker run greeting`
-
+- stop/remove
+    `./shutdown-cluster.sh`
+    ![](/res/img1.png)
 
 --- 
 
-### Example
-
-  ![](/res/example.png)

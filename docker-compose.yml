@@ -1,0 +1,37 @@
+version: "3.9"
+
+services:
+  node0:
+    image: cassandra:latest
+    container_name: node0
+    hostname: node0
+    networks: &net
+      - cassandra
+    environment: &env
+      - CASSANDRA_SEEDS=node0,node1,node2
+      - CASSANDRA_CLUSTER_NAME=cassandra_intro
+
+  node1:
+    image: cassandra:latest
+    container_name: node1
+    hostname: node1
+    networks: *net
+    ports:
+      - "9043:9042"
+    environment: *env
+    depends_on:
+      - node0
+
+  node2:
+    image: cassandra:latest
+    container_name: node2
+    hostname: node2
+    networks: *net
+    ports:
+      - "9044:9042"
+    environment: *env
+    depends_on:
+      - node1
+
+networks:
+  cassandra:
