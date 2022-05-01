@@ -1,4 +1,0 @@
-cql_node=node0
-kspace_name=hw2_bek
-table1_name=favorite_songs
-table2_name=favorite_movies
