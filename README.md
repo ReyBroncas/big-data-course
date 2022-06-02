@@ -9,7 +9,7 @@
 
 - run producer:
     `./task.sh producer`
--run consumer:
+- run consumer:
     `./task.sh consumer`
 
 - delete/stop
