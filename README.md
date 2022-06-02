@@ -20,4 +20,4 @@
 #### Example
 
 - task:
-    ![](/res/Screenshot from 2022-06-02 17-23-02.png)
+    ![]("/res/Screenshot from 2022-06-02 17-23-02.png")
