@@ -4,9 +4,6 @@
 
 - install/run:
     `./run-cluster.sh`
-- create topic in Kafka:
-    `./task.sh`
-
 - run producer:
     `./task.sh producer`
 - run consumer:
