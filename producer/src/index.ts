@@ -3,11 +3,11 @@ import csv from 'csv-parser'
 import { Kafka, CompressionTypes } from 'kafkajs'
 import { exit } from 'process'
 
-const KAFKA_CLIENT_ID = 'producer'
+const KAFKA_CLIENT_ID = 'test-producer'
 const KAFKA_BROKERS = ['kafka:9092']
 const KAFKA_TOPIC = 'tweets'
 const BATCH_LIMIT = 15
-const BATCH_TIMEOUT = 1000
+const BATCH_TIMEOUT = 60000
 
 ;(async () => {
   const data: any[] = []
@@ -27,8 +27,9 @@ const BATCH_TIMEOUT = 1000
   const batch = []
   let item: any
   for (item of data) {
-    if (batch.length >= BATCH_LIMIT) {
+    if (batch.length > BATCH_LIMIT) {
       await sendBatch(producer, batch)
+      console.log('[producer]: added messages batch')
       await sleep(BATCH_TIMEOUT)
       batch.length = 0
     } else {
@@ -36,14 +37,14 @@ const BATCH_TIMEOUT = 1000
       batch.push(item)
     }
   }
-  console.log('done')
+  console.log('[producer]: done')
 })()
 
 async function sendBatch(producer, data: any[]) {
   await producer
     .send({
       topic: KAFKA_TOPIC,
-      compression: CompressionTypes.GZIP,
+      // compression: CompressionTypes.GZIP,
       messages: data.map((value) => ({
         value: JSON.stringify(value),
       })),

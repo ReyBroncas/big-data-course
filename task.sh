@@ -9,7 +9,6 @@ if [ "$1" == "producer" ]; then
     exit
 fi
 if [ "$1" == "consumer" ]; then
-    docker-compose up -d kafka-consumer
-    run_command kafka-consumer "kafka-console-consumer.sh --bootstrap-server kafka:9092 --topic tweets"
+    docker-compose up consumer
     exit
 fi

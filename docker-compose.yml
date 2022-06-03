@@ -43,20 +43,23 @@ services:
       - ./producer/src:/app/src
     depends_on:
       - kafka
+      - consumer
     networks:
       - lab_5
 
-
-  kafka-consumer:
-    image: bitnami/kafka:latest
-    container_name: kafka-consumer
-    ports:
-      - "9094:9092"
+  consumer:
+    build:
+      context: ./consumer
+      dockerfile: ./Dockerfile
+    container_name: consumer
     environment:
-       KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
-       KAFKA_ADVERTISED_HOSTNAME: kafka
-       ALLOW_PLAINTEXT_LISTENER: yes
+       dataset: dataset.csv
+    volumes:
+      - ./consumer/src:/app/src
+      - ./consumer/data:/app/data
     depends_on:
-      - zookeeper
+      - kafka
     networks:
       - lab_5
+
+

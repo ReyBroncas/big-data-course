@@ -18,3 +18,5 @@
 
 - task:
     ![](/res/img1.png)
+- example:
+    ![](/res/img2.png)
