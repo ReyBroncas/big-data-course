@@ -1,13 +1,13 @@
 import fs from 'fs'
 import csv from 'csv-parser'
-import { Kafka, CompressionTypes } from 'kafkajs'
-import { exit } from 'process'
+import { Kafka } from 'kafkajs'
 
 const KAFKA_CLIENT_ID = 'test-producer'
 const KAFKA_BROKERS = ['kafka:9092']
-const KAFKA_TOPIC = 'tweets'
-const BATCH_LIMIT = 15
-const BATCH_TIMEOUT = 60000
+const KAFKA_TOPIC = 'transactions'
+const BATCH_LIMIT = 20
+const BATCH_TIMEOUT = 1000
+const RANDOM_DATE_TRESHOLD = 30
 
 ;(async () => {
   const data: any[] = []
@@ -15,7 +15,6 @@ const BATCH_TIMEOUT = 60000
   readStream.pipe(csv()).on('data', (row) => {
     data.push(row)
   })
-
   await new Promise((resolve) => {
     readStream.on('end', resolve)
   })
@@ -24,16 +23,17 @@ const BATCH_TIMEOUT = 60000
   const producer = kafka.producer()
   await producer.connect()
 
-  const batch = []
+  let batch = []
   let item: any
   for (item of data) {
     if (batch.length > BATCH_LIMIT) {
       await sendBatch(producer, batch)
-      console.log('[producer]: added messages batch')
+      console.log(`[producer]: added ${BATCH_LIMIT} items`)
       await sleep(BATCH_TIMEOUT)
-      batch.length = 0
+      batch = []
     } else {
-      item.created_at = new Date().toISOString()
+      item.transaction_date = getRandomDate().getTime()
+
       batch.push(item)
     }
   }
@@ -44,7 +44,6 @@ async function sendBatch(producer, data: any[]) {
   await producer
     .send({
       topic: KAFKA_TOPIC,
-      // compression: CompressionTypes.GZIP,
       messages: data.map((value) => ({
         value: JSON.stringify(value),
       })),
@@ -56,4 +55,14 @@ function sleep(ms) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms)
   })
+}
+
+function getRandomDate() {
+  const end = new Date()
+  const start = new Date(
+    end.getTime() - RANDOM_DATE_TRESHOLD * 24 * 60 * 60 * 1000,
+  )
+  return new Date(
+    start.getTime() + Math.random() * (end.getTime() - start.getTime()),
+  )
 }
