@@ -1,4 +1,4 @@
-consumer/data
+app/data
 # Logs
 logs
 *.log

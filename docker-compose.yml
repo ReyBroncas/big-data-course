@@ -1,96 +1,37 @@
 version: "3.9"
 
 networks:
-  lab_8:
+  lab_9:
     driver: bridge
 
 services:
-  zookeeper:
-    image: bitnami/zookeeper:latest
-    container_name: zookeeper
-    restart: always
+  spark-master:
+    image: bitnami/spark:latest
+    volumes:
+      - "./app:/app"
+    working_dir: "/app"
+    container_name: spark-master
     ports:
-    - 2181:2181
+      - "8080:8080"
+      - "7077:7077"
     environment:
-       ZOOKEEPER_CLIENT_PORT: 2181
-       ZOOKEEPER_TICK_TIME: 2000
-       ALLOW_ANONYMOUS_LOGIN: yes
+      - SPARK_MODE=master
+      - SPARK_LOCAL_IP=spark-master
     networks:
-      - lab_8
+      - lab_9
 
-  kafka:
-    image: bitnami/kafka:latest
-    container_name: kafka
-    ports:
-      - "9092:9092"
+  spark-worker:
+    image: bitnami/spark:latest
+    container_name: spark-worker
     environment:
-       KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
-       KAFKA_ADVERTISED_HOSTNAME: kafka
-       ALLOW_PLAINTEXT_LISTENER: yes
+      - SPARK_MODE=worker
+      - SPARK_LOCAL_IP=spark-worker
+      - SPARK_MASTER=spark://spark-master:7077
+      - SPARK_WORKER_CORES=1
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_DRIVER_MEMORY=1G
+      - SPARK_EXECUTOR_MEMORY=1G
     depends_on:
-      - zookeeper
+      - spark-master
     networks:
-      - lab_8
-
-  cassandra-node:
-    image: cassandra:3.11
-    container_name: cassandra-node
-    hostname: cassandra-node
-    build:
-      context: ./cassandra
-      dockerfile: ./Dockerfile
-    networks:
-      - lab_8
-    environment: &env
-      - CASSANDRA_SEEDS=cassandra-node #,node1,node2
-      - CASSANDRA_CLUSTER_NAME=cassandra_intro
-    # ports:
-    #   - 9040:9042
-    volumes:
-      - ./cassandra/data:/data
-      - ./cassandra/scripts:/docker-entrypoint-initdb.d
-
-  producer:
-    build:
-      context: ./producer
-      dockerfile: ./Dockerfile
-    container_name: producer
-    environment:
-       dataset: ./data/dataset.csv
-    volumes:
-      - ./producer/src:/app/src
-    depends_on:
-      - consumer
-    networks:
-      - lab_8
-
-  consumer:
-    build:
-      context: ./consumer
-      dockerfile: ./Dockerfile
-    container_name: consumer
-    environment:
-       dataset: dataset.csv
-    volumes:
-      - ./consumer/src:/app/src
-      - ./consumer/data:/app/data
-    depends_on:
-      - kafka
-      - cassandra-node
-    networks:
-      - lab_8
-
-  rest-service:
-    build:
-      context: ./rest-service
-      dockerfile: ./Dockerfile
-    container_name: rest-service
-    ports:
-      - "8080:3000"
-    volumes:
-      - ./rest-service/src:/app/src
-      - ./rest-service/data:/app/data
-    depends_on:
-      - cassandra-node
-    networks:
-      - lab_8
+      - lab_9
