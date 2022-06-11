@@ -6,6 +6,7 @@ networks:
 
 services:
   spark-master:
+    user: root
     image: bitnami/spark:latest
     volumes:
       - "./app:/app"
