@@ -17,4 +17,4 @@
 
 - result:
 
-    ![](/res/img.png)
+    ![](/res/img2.png)
