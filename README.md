@@ -11,6 +11,11 @@
 - delete/stop:
     `docker-compose down && docker-compose rm`
 
+
+## Results:
+
+- results are @ `./app/data/`
+
 --- 
 
 #### Example
