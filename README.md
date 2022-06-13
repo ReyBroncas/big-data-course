@@ -31,3 +31,7 @@
 - 4 task:
 
     ![](/res/res4.png)
+
+- 5 task:
+
+    ![](/res/res5.png)

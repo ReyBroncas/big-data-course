@@ -142,13 +142,49 @@ def task4(df):
             list(_) for _ in
             distinct_videos.select('video_id', 'max(views)').where(distinct_videos.channel_title == title).collect()
         ]])
-    print(data)
 
     res = spark.createDataFrame(data=data, schema=schema)
 
     out = dict()
     out['channels'] = [json.loads(_) for _ in res.toJSON().collect()]
     with open(f'{RESULTS_PATH}/task_4.json', "w") as outfile:
+        json.dump(out, outfile)
+
+    return res
+
+
+def task5(df):
+    schema = T.StructType([
+        T.StructField("channel_name", T.StringType()),
+        T.StructField("total_trending_days", T.StringType()),
+        T.StructField("video_days", T.ArrayType(
+            T.StructType([
+                T.StructField("video_id", T.StringType()),
+                T.StructField("video_title", T.StringType()),
+                T.StructField("trending_days", T.LongType()),
+            ])
+        )),
+    ])
+
+    data = []
+    channel_trending_days = [
+        list(_) for _ in df.groupby('channel_title').count() \
+            .sort("count", ascending=False).limit(10).collect()
+    ]
+
+    for channel, total_trending_days in channel_trending_days:
+        trending_videos = df.filter(df.channel_title == channel).groupBy(
+            "video_id", "title").agg(F.count(F.col("date").alias('trending_days')))
+
+        data.append([channel, total_trending_days, [
+            list(_) for _ in trending_videos.collect()
+        ]])
+
+    res = spark.createDataFrame(data=data, schema=schema)
+
+    out = dict()
+    out['channels'] = [json.loads(_) for _ in res.toJSON().collect()]
+    with open(f'{RESULTS_PATH}/task_5.json', "w") as outfile:
         json.dump(out, outfile)
 
     return res
@@ -177,7 +213,7 @@ if __name__ == '__main__':
     df = df.withColumn("views", df["views"].cast(IntegerType()))
     df = df.withColumn('date', to_date(col("trending_date"), "yy.dd.MM").cast("date"))
 
-    tasks = [task1, task2, task4]
+    tasks = [task5]
     for task in tasks:
         task_df = task(df)
         print(f'\n[result]: {task.__name__}: ')
