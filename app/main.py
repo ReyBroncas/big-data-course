@@ -12,14 +12,6 @@ CATEGORIES_DATA_PATH = './data/US_category_id.json'
 RESULTS_PATH = './data/results'
 
 
-def get_categories():
-    data = json.load(open(CATEGORIES_DATA_PATH))
-    out = dict()
-    for i in data['items']:
-        out[i['id']] = i['snippet']['title']
-    return out
-
-
 def task1(df):
     schema = T.StructType([
         T.StructField('id', T.StringType(), True),
@@ -115,8 +107,48 @@ def task2(df):
     res = spark.createDataFrame(data=data, schema=schema)
 
     out = dict()
-    out['videos'] = [json.loads(_) for _ in res.toJSON().collect()]
+    out['weeks'] = [json.loads(_) for _ in res.toJSON().collect()]
     with open(f'{RESULTS_PATH}/task_2.json', "w") as outfile:
+        json.dump(out, outfile)
+
+    return res
+
+
+def task4(df):
+    schema = T.StructType([
+        T.StructField("channel_name", T.StringType()),
+        T.StructField("start_date", T.StringType()),
+        T.StructField("end_date", T.StringType()),
+        T.StructField("total_views", T.LongType()),
+        T.StructField("video_views", T.ArrayType(
+            T.StructType([
+                T.StructField("video_id", T.StringType()),
+                T.StructField("views", T.LongType()),
+            ])
+        )),
+    ])
+
+    distinct_videos = df.groupBy('channel_title', 'video_id').agg(F.max(col('views')))
+    top_channels = distinct_videos.groupBy('channel_title').agg(F.sum('max(views)')).sort(
+        desc('sum(max(views))')).limit(20)
+
+    data = []
+    end_time = str(list(df.agg(F.max('date')).collect()[0])[0])
+    start_time = str(list(df.agg(F.min('date')).collect()[0])[0])
+
+    for channel in top_channels.collect():
+        title, total_views = list(channel)
+        data.append([title, start_time, end_time, total_views, [
+            list(_) for _ in
+            distinct_videos.select('video_id', 'max(views)').where(distinct_videos.channel_title == title).collect()
+        ]])
+    print(data)
+
+    res = spark.createDataFrame(data=data, schema=schema)
+
+    out = dict()
+    out['channels'] = [json.loads(_) for _ in res.toJSON().collect()]
+    with open(f'{RESULTS_PATH}/task_4.json', "w") as outfile:
         json.dump(out, outfile)
 
     return res
@@ -125,6 +157,14 @@ def task2(df):
 def convert_date(x):
     tmp = x.split('.')
     return udf(str(datetime.datetime(int(tmp[0]), int(tmp[1]), int(tmp[2]))))
+
+
+def get_categories():
+    data = json.load(open(CATEGORIES_DATA_PATH))
+    out = dict()
+    for i in data['items']:
+        out[i['id']] = i['snippet']['title']
+    return out
 
 
 if __name__ == '__main__':
@@ -137,7 +177,7 @@ if __name__ == '__main__':
     df = df.withColumn("views", df["views"].cast(IntegerType()))
     df = df.withColumn('date', to_date(col("trending_date"), "yy.dd.MM").cast("date"))
 
-    tasks = [task1, task2]
+    tasks = [task2, task4]
     for task in tasks:
         task_df = task(df)
         print(f'\n[result]: {task.__name__}: ')
