@@ -213,7 +213,7 @@ if __name__ == '__main__':
     df = df.withColumn("views", df["views"].cast(IntegerType()))
     df = df.withColumn('date', to_date(col("trending_date"), "yy.dd.MM").cast("date"))
 
-    tasks = [task5]
+    tasks = [task1, task2, task4, task5]
     for task in tasks:
         task_df = task(df)
         print(f'\n[result]: {task.__name__}: ')
