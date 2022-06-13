@@ -14,7 +14,7 @@
 
 ## Results:
 
-- results are @ `./app/data/`
+- results are @ `./app/data/results/`
 
 --- 
 
