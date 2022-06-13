@@ -1,7 +1,7 @@
 version: "3.9"
 
 networks:
-  lab_9:
+  lab_10:
     driver: bridge
 
 services:
@@ -9,8 +9,8 @@ services:
     user: root
     image: bitnami/spark:latest
     volumes:
-      - "./app:/app"
-    working_dir: "/app"
+      - "./app:/opt/app"
+    working_dir: "/opt/app"
     container_name: spark-master
     ports:
       - "8080:8080"
@@ -19,7 +19,7 @@ services:
       - SPARK_MODE=master
       - SPARK_LOCAL_IP=spark-master
     networks:
-      - lab_9
+      - lab_10
 
   spark-worker:
     image: bitnami/spark:latest
@@ -35,4 +35,4 @@ services:
     depends_on:
       - spark-master
     networks:
-      - lab_9
+      - lab_10

@@ -6,7 +6,7 @@
     `docker-compose up -d`
 
 - run task app:
-    `./countWords.sh`
+    `./task.sh`
 
 - delete/stop:
     `docker-compose down && docker-compose rm`
@@ -15,6 +15,10 @@
 
 #### Example
 
-- result:
+- 1 task:
 
-    ![](/res/img.png)
+    ![](/res/res1.png)
+
+- 2 task:
+
+    ![](/res/res2.png)

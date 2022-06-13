@@ -1,4 +1,5 @@
-app/data
+app/data/*.csv
+app/data/*.json
 # Logs
 logs
 *.log

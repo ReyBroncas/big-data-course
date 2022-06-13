@@ -3,11 +3,21 @@ import json
 from pyspark.sql import SparkSession
 import pyspark.sql.types as T
 import datetime
-from pyspark.sql.functions import udf, col, to_date
-from pyspark.sql.types import IntegerType, DateType
+from pyspark.sql.functions import udf, col, to_date, desc
+import pyspark.sql.functions as F
+from pyspark.sql.types import IntegerType
 
 DATASET_PATH = './data/USvideos.csv'
+CATEGORIES_DATA_PATH = './data/US_category_id.json'
 RESULTS_PATH = './data/results'
+
+
+def get_categories():
+    data = json.load(open(CATEGORIES_DATA_PATH))
+    out = dict()
+    for i in data['items']:
+        out[i['id']] = i['snippet']['title']
+    return out
 
 
 def task1(df):
@@ -42,19 +52,74 @@ def task1(df):
         ])
         data.append(row)
 
-    res_df = spark.createDataFrame(data=data, schema=schema)
+    res = spark.createDataFrame(data=data, schema=schema)
 
-    res = dict()
-    res['videos'] = [json.loads(_) for _ in res_df.toJSON().collect()]
+    out = dict()
+    out['videos'] = [json.loads(_) for _ in res.toJSON().collect()]
     with open(f'{RESULTS_PATH}/task_1.json', "w") as outfile:
-        json.dump(res, outfile)
+        json.dump(out, outfile)
 
-    return res_df
+    return res
 
 
 def task2(df):
-    # TODO: should solve this
-    pass
+    schema = T.StructType([
+        T.StructField("start_date", T.StringType()),
+        T.StructField("end_date", T.StringType()),
+        T.StructField("category_id", T.IntegerType()),
+        T.StructField("category_name", T.StringType()),
+        T.StructField("number_of_videos", T.LongType()),
+        T.StructField("total_views", T.LongType()),
+        T.StructField("video_ids", T.ArrayType(T.StringType())),
+    ])
+
+    @udf(returnType=T.StringType())
+    def get_week_date(item):
+        if item is None:
+            return None
+        return item.strftime("%Y-%V")
+
+    categories = get_categories()
+    df = df.withColumn("week_date", get_week_date(col("date")))
+    week_dates = [
+        row.week_date for row in
+        df.groupBy('week_date').agg(col('week_date')).select('week_date').collect()
+    ]
+
+    data = []
+    for week in week_dates:
+        week_videos = df.filter(df.week_date == week) \
+            .groupBy('video_id', 'category_id').agg(F.max(col('views')) - F.min(col('views'))) \
+            .filter('(max(views) - min(views)) > 0')
+
+        top_category = week_videos.groupBy('category_id').agg(F.sum('(max(views) - min(views))').alias('views')) \
+            .sort(desc('views')).limit(1).collect()
+
+        if not len(top_category):
+            continue
+
+        videos = [
+            _[0] for _ in
+            week_videos.select('video_id').where(week_videos.category_id == top_category[0].category_id).collect()
+        ]
+
+        end_date = datetime.datetime.strptime(week + ' 0', '%Y-%W %w')
+        start_date = end_date - datetime.timedelta(days=6)
+
+        data.append([
+            str(start_date), str(end_date), int(top_category[0].category_id),
+            categories.get(top_category[0].category_id),
+            len(videos), top_category[0].views, videos
+        ])
+
+    res = spark.createDataFrame(data=data, schema=schema)
+
+    out = dict()
+    out['videos'] = [json.loads(_) for _ in res.toJSON().collect()]
+    with open(f'{RESULTS_PATH}/task_2.json', "w") as outfile:
+        json.dump(out, outfile)
+
+    return res
 
 
 def convert_date(x):
@@ -75,6 +140,6 @@ if __name__ == '__main__':
     tasks = [task1, task2]
     for task in tasks:
         task_df = task(df)
-        print('\n[result]: task1: ')
+        print(f'\n[result]: {task.__name__}: ')
         task_df.printSchema()
         task_df.show(truncate=True)
