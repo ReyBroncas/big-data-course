@@ -176,7 +176,7 @@ def task5(df):
         trending_videos = df.filter(df.channel_title == channel).groupBy(
             "video_id", "title").agg(F.count(F.col("date").alias('trending_days')))
 
-        data.append([channel, total_trending_days, [
+        data.append([channel, str(total_trending_days), [
             list(_) for _ in trending_videos.collect()
         ]])
 
@@ -185,6 +185,40 @@ def task5(df):
     out = dict()
     out['channels'] = [json.loads(_) for _ in res.toJSON().collect()]
     with open(f'{RESULTS_PATH}/task_5.json', "w") as outfile:
+        json.dump(out, outfile)
+
+    return res
+
+
+def task6(df):
+    schema = T.StructType([
+        T.StructField("category_id", T.StringType()),
+        T.StructField("category_name", T.StringType()),
+        T.StructField("videos", T.ArrayType(
+            T.StructType([
+                T.StructField("video_id", T.StringType()),
+                T.StructField("video_title", T.StringType()),
+                T.StructField("ratio_likes_dislike", T.FloatType()),
+                T.StructField("views", T.LongType()),
+            ])
+        )),
+    ])
+
+    data = []
+    for category_id, category_title in get_categories().items():
+        top_videos = df.filter((df.views >= 100000) & (df.category_id == category_id)) \
+            .groupBy('video_id', 'title', 'views').agg(F.max(F.col('likes') / F.col("dislikes")).alias('ratio')) \
+            .sort(desc('ratio')).limit(10)
+
+        data.append([category_id, category_title, [
+            list(_) for _ in top_videos.select('video_id', 'title', 'ratio', 'views').collect()
+        ]])
+
+    res = spark.createDataFrame(data=data, schema=schema)
+
+    out = dict()
+    out['categories'] = [json.loads(_) for _ in res.toJSON().collect()]
+    with open(f'{RESULTS_PATH}/task_6.json', "w") as outfile:
         json.dump(out, outfile)
 
     return res
@@ -213,7 +247,7 @@ if __name__ == '__main__':
     df = df.withColumn("views", df["views"].cast(IntegerType()))
     df = df.withColumn('date', to_date(col("trending_date"), "yy.dd.MM").cast("date"))
 
-    tasks = [task1, task2, task4, task5]
+    tasks = [task1, task2, task4, task5, task6]
     for task in tasks:
         task_df = task(df)
         print(f'\n[result]: {task.__name__}: ')
